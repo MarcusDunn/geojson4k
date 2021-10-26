@@ -1,17 +1,23 @@
+import kotlinx.serialization.*
+
 sealed class Coordinate {
     // For type "Point", the "coordinates" member is a single position.
+    @Serializable
     data class Point(val position: Position) : Coordinate()
 
     // For type "MultiPoint", the "coordinates" member is an array of
     // positions.
+    @Serializable
     data class MultiPoint(val position: Position) : Coordinate()
 
     // For type "LineString", the "coordinates" member is an array of two or
     // more positions.
+    @Serializable
     data class LineString(val position: Position) : Coordinate()
 
     // For type "MultiLineString", the "coordinates" member is an array of
     // LineString coordinate arrays.
+    @Serializable
     data class MultiLineString(val lineString: List<GeometryObject.CoordinatesGeometryObject.LineString>) : Coordinate()
 
     // -  specify a constraint specific to Polygons, it is useful to

@@ -1,3 +1,5 @@
+import kotlinx.serialization.Serializable
+
 // A Geometry object represents points, curves, and surfaces in
 // coordinate space.  Every Geometry object is a GeoJSON object no
 // matter where it occurs in a GeoJSON text.
@@ -61,6 +63,7 @@ sealed class GeometryObject : GeoJsonObject() {
 
         // For type "LineString", the "coordinates" member is an array of two or
         // more positions.
+        @Serializable
         sealed class LineString : CoordinatesGeometryObject() {
             final override val type = GeometryType.LineString
 
