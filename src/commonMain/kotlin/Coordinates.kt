@@ -1,5 +1,4 @@
 import kotlinx.serialization.KSerializer
-import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.FloatArraySerializer
 import kotlinx.serialization.builtins.ListSerializer
@@ -10,32 +9,76 @@ import kotlin.math.*
 
 sealed class Coordinates {
     // For type "Point", the "coordinates" member is a single position.
-    @Serializable(with = PointAsFloatArray::class)
-    data class Point(val value: Position) : Coordinates()
+    @Serializable(with = Point.Serializer::class)
+    data class Point(val value: Position) : Coordinates() {
+        object Serializer : KSerializer<Coordinates.Point> {
+            override val descriptor: SerialDescriptor = SerialDescriptor("Point", FloatArraySerializer().descriptor)
+
+            override fun deserialize(decoder: Decoder): Coordinates.Point {
+                return Coordinates.Point(Position(*decoder.decodeSerializableValue(FloatArraySerializer())))
+            }
+
+            override fun serialize(encoder: Encoder, value: Coordinates.Point) {
+                encoder.encodeSerializableValue(Position.Serializer, value.value)
+            }
+        }
+    }
 
     // For type "MultiPoint", the "coordinates" member is an array of
     // positions.
-    @Serializable(with = MultiPointAs2DArraySerializer::class)
-    data class MultiPoint(val value: List<Position>) : Coordinates()
+    @Serializable(with = MultiPoint.Serializer::class)
+    data class MultiPoint(val value: List<Position>) : Coordinates() {
+        object Serializer : KSerializer<MultiPoint> {
+            override val descriptor: SerialDescriptor =
+                SerialDescriptor("MultiPoint", ListSerializer(Position.Serializer).descriptor)
+
+            override fun deserialize(decoder: Decoder): MultiPoint {
+                val array2d = decoder.decodeSerializableValue(ListSerializer(Position.Serializer))
+                return MultiPoint(array2d.map { it })
+            }
+
+            override fun serialize(encoder: Encoder, value: MultiPoint) {
+                encoder.encodeSerializableValue(ListSerializer(Position.Serializer), value.value)
+            }
+        }
+    }
 
     // For type "LineString", the "coordinates" member is an array of two or
     // more positions.
-    @Serializable(with = LineStringAs2DArraySerializer::class)
+    @Serializable(with = LineString.Serializer::class)
     sealed class LineString : Coordinates() {
+        object Serializer : KSerializer<Coordinates.LineString> {
+            override val descriptor: SerialDescriptor =
+                SerialDescriptor("LineString", ListSerializer(Position.Serializer).descriptor)
+
+            override fun deserialize(decoder: Decoder): Coordinates.LineString {
+                val array2d = decoder.decodeSerializableValue(ListSerializer(Position.Serializer))
+                return Coordinates.LineString(array2d.map { it })
+            }
+
+            override fun serialize(encoder: Encoder, value: Coordinates.LineString) {
+                val coords = when (value) {
+                    is Coordinates.LineString.LinearRing -> value.value
+                    is Coordinates.LineString.Standard -> value.value
+                }
+                encoder.encodeSerializableValue(ListSerializer(Position.Serializer), coords)
+            }
+        }
+
         companion object {
             operator fun invoke(value: List<Position>): LineString {
                 return runCatching { LinearRing(value) }.getOrElse { Standard(value) }
             }
         }
 
-        @Serializable(with = LineStringAs2DArraySerializer::class)
+        @Serializable(with = Serializer::class)
         data class Standard(val value: List<Position>) : LineString() {
             init {
                 require(value.size >= 2) { "For type \"LineString\", the \"coordinates\" member is an array of two or more positions." }
             }
         }
 
-        @Serializable(with = LineStringAs2DArraySerializer::class)
+        @Serializable(with = Serializer::class)
         data class LinearRing(val value: List<Position>) : LineString() {
             init {
                 require(value.size >= 4)
@@ -81,18 +124,18 @@ sealed class Coordinates {
     // LineString coordinate arrays.
     @Serializable(with = MultiLineString.Serializer::class)
     data class MultiLineString(val value: List<Coordinates.LineString>) : Coordinates() {
-        object Serializer : KSerializer<MultiLineString>{
+        object Serializer : KSerializer<MultiLineString> {
             override fun deserialize(decoder: Decoder): MultiLineString {
                 val list = decoder.decodeSerializableValue(ListSerializer(LineString.serializer()))
                 return MultiLineString(list)
             }
 
-            override val descriptor: SerialDescriptor = SerialDescriptor("MultiLineString", ListSerializer(LineString.serializer()).descriptor)
+            override val descriptor: SerialDescriptor =
+                SerialDescriptor("MultiLineString", ListSerializer(LineString.serializer()).descriptor)
 
             override fun serialize(encoder: Encoder, value: MultiLineString) {
                 encoder.encodeSerializableValue(ListSerializer(LineString.serializer()), value.value)
             }
-
         }
     }
 
@@ -128,52 +171,7 @@ sealed class Coordinates {
     //    present) bound holes within the surface.
     @Serializable
     data class Polygon(val value: List<Coordinates.LineString.LinearRing>) : Coordinates()
+
     @Serializable
     data class MultiPolygon(val value: List<Coordinates.Polygon>) : Coordinates()
-}
-
-object LineStringAs2DArraySerializer : KSerializer<Coordinates.LineString> {
-    override val descriptor: SerialDescriptor =
-        SerialDescriptor("LineString", ListSerializer(PositionAsFloatArraySerializer).descriptor)
-
-    override fun deserialize(decoder: Decoder): Coordinates.LineString {
-        val array2d = decoder.decodeSerializableValue(ListSerializer(PositionAsFloatArraySerializer))
-        return Coordinates.LineString(array2d.map { it })
-    }
-
-    override fun serialize(encoder: Encoder, value: Coordinates.LineString) {
-        val coords = when (value) {
-            is Coordinates.LineString.LinearRing -> value.value
-            is Coordinates.LineString.Standard -> value.value
-        }
-        encoder.encodeSerializableValue(ListSerializer(PositionAsFloatArraySerializer), coords)
-    }
-
-}
-
-object MultiPointAs2DArraySerializer : KSerializer<Coordinates.MultiPoint> {
-    override val descriptor: SerialDescriptor =
-        SerialDescriptor("MultiPoint", ListSerializer(PositionAsFloatArraySerializer).descriptor)
-
-    override fun deserialize(decoder: Decoder): Coordinates.MultiPoint {
-        val array2d = decoder.decodeSerializableValue(ListSerializer(PositionAsFloatArraySerializer))
-        return Coordinates.MultiPoint(array2d.map { it })
-    }
-
-    override fun serialize(encoder: Encoder, value: Coordinates.MultiPoint) {
-        encoder.encodeSerializableValue(ListSerializer(PositionAsFloatArraySerializer), value.value)
-    }
-
-}
-
-object PointAsFloatArray : KSerializer<Coordinates.Point> {
-    override val descriptor: SerialDescriptor = SerialDescriptor("Point", FloatArraySerializer().descriptor)
-
-    override fun deserialize(decoder: Decoder): Coordinates.Point {
-        return Coordinates.Point(Position(*decoder.decodeSerializableValue(FloatArraySerializer())))
-    }
-
-    override fun serialize(encoder: Encoder, value: Coordinates.Point) {
-        encoder.encodeSerializableValue(PositionAsFloatArraySerializer, value.value)
-    }
 }

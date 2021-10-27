@@ -34,8 +34,24 @@ import kotlinx.serialization.encoding.Encoder
 // not be able to properly interpret these values.  The interpretation
 // and meaning of additional elements is beyond the scope of this
 // specification, and additional elements MAY be ignored by parsers.
-@Serializable(with = PositionAsFloatArraySerializer::class)
+@Serializable(with = Position.Serializer::class)
 data class Position(val latitude: Float, val longitude: Float, val altitude: Float? = null) {
+    object Serializer : KSerializer<Position> {
+        @OptIn(ExperimentalSerializationApi::class)
+        override val descriptor: SerialDescriptor = SerialDescriptor("Position", FloatArraySerializer().descriptor)
+
+        override fun serialize(encoder: Encoder, value: Position) {
+            encoder.encodeSerializableValue(
+                FloatArraySerializer(),
+                listOfNotNull(value.latitude, value.longitude, value.altitude).toFloatArray()
+            )
+        }
+
+        override fun deserialize(decoder: Decoder): Position {
+            val floatArray = decoder.decodeSerializableValue(FloatArraySerializer())
+            return Position(*floatArray)
+        }
+    }
 
     constructor(vararg scalar: Float) : this(
         latitude = scalar[0],
@@ -44,21 +60,4 @@ data class Position(val latitude: Float, val longitude: Float, val altitude: Flo
             scalar[2]
         } else null
     )
-}
-
-object PositionAsFloatArraySerializer : KSerializer<Position> {
-    @OptIn(ExperimentalSerializationApi::class)
-    override val descriptor: SerialDescriptor = SerialDescriptor("Position", FloatArraySerializer().descriptor)
-
-    override fun serialize(encoder: Encoder, value: Position) {
-        encoder.encodeSerializableValue(
-            FloatArraySerializer(),
-            listOfNotNull(value.latitude, value.longitude, value.altitude).toFloatArray()
-        )
-    }
-
-    override fun deserialize(decoder: Decoder): Position {
-        val floatArray = decoder.decodeSerializableValue(FloatArraySerializer())
-        return Position(*floatArray)
-    }
 }

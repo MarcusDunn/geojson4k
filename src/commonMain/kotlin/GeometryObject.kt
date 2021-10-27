@@ -76,7 +76,6 @@ sealed interface GeometryObject {
 
         }
 
-
         @Serializable(with = Serializer::class)
         object LineString : GeometryObjectType() {
             override val name = "LineString"
@@ -113,11 +112,11 @@ sealed interface GeometryObject {
         }
     }
 
-    interface Coordinate : GeometryObject {
+    interface CoordinateBased : GeometryObject {
         val coordinates: Coordinates
     }
 
-    interface Collection : GeometryObject {
+    interface CollectionBased : GeometryObject {
         val geometries: List<GeoJsonObject>
     }
 }
@@ -126,7 +125,7 @@ sealed interface GeometryObject {
 open class GeometryCollection private constructor(
     override val geometries: List<GeoJsonObject>,
     override val type: GeometryObject.GeometryObjectType.GeometryCollection
-) : GeometryObject.Collection {
+) : GeometryObject.CollectionBased {
     constructor(geometries: List<GeoJsonObject>) : this(
         geometries,
         GeometryObject.GeometryObjectType.GeometryCollection
@@ -160,7 +159,7 @@ open class GeometryCollection private constructor(
 open class Point private constructor(
     override val coordinates: Coordinates.Point,
     override val type: GeometryObject.GeometryObjectType.Point
-) : GeometryObject.Coordinate {
+) : GeometryObject.CoordinateBased {
     constructor(coordinates: Coordinates.Point) : this(coordinates, GeometryObject.GeometryObjectType.Point)
 
     override fun equals(other: Any?): Boolean {
@@ -190,7 +189,7 @@ open class Point private constructor(
 open class MultiPoint private constructor(
     override val coordinates: Coordinates.MultiPoint,
     override val type: GeometryObject.GeometryObjectType.MultiPoint
-) : GeometryObject.Coordinate {
+) : GeometryObject.CoordinateBased {
     constructor(coordinates: Coordinates.MultiPoint) : this(coordinates, GeometryObject.GeometryObjectType.MultiPoint)
 
     override fun equals(other: Any?): Boolean {
@@ -218,10 +217,31 @@ open class MultiPoint private constructor(
 // LineString coordinate arrays.
 @Serializable
 @SerialName("MultiLineString")
-open class MultiLineString(
+open class MultiLineString private constructor(
     override val coordinates: Coordinates.MultiLineString,
     override val type: GeometryObject.GeometryObjectType.MultiLineString
-) : GeometryObject.Coordinate
+) : GeometryObject.CoordinateBased {
+    constructor(coordinates: Coordinates.MultiLineString) : this(coordinates, GeometryObject.GeometryObjectType.MultiLineString)
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other == null || this::class != other::class) return false
+
+        other as MultiLineString
+
+        if (coordinates != other.coordinates) return false
+        if (type != other.type) return false
+
+        return true
+    }
+    override fun hashCode(): Int {
+        var result = coordinates.hashCode()
+        result = 31 * result + type.hashCode()
+        return result
+    }
+    override fun toString(): String {
+        return "MultiLineString(coordinates=$coordinates, type=$type)"
+    }
+}
 
 // -  For type "Polygon", the "coordinates" member MUST be an array of
 //    linear ring coordinate arrays.
@@ -234,7 +254,7 @@ open class Polygon private constructor(
     override val coordinates: Coordinates.Polygon,
     override val type: GeometryObject.GeometryObjectType.Polygon
 
-) : GeometryObject.Coordinate {
+) : GeometryObject.CoordinateBased {
     init {
         require(coordinates.value.size > 1) { "must contain at at least one linestring" }
         val outerRing = coordinates.value.first()
@@ -247,7 +267,7 @@ open class Polygon private constructor(
 open class MultiPolygon private constructor(
     override val coordinates: Coordinates.MultiPolygon,
     override val type: GeometryObject.GeometryObjectType.MultiPolygon
-) : GeometryObject.Coordinate {
+) : GeometryObject.CoordinateBased {
     constructor(coordinates: Coordinates.MultiPolygon) : this(
         coordinates,
         GeometryObject.GeometryObjectType.MultiPolygon
@@ -282,7 +302,7 @@ open class MultiPolygon private constructor(
 open class LineString private constructor(
     override val coordinates: Coordinates.LineString,
     override val type: GeometryObject.GeometryObjectType.LineString
-) : GeometryObject.Coordinate {
+) : GeometryObject.CoordinateBased {
     constructor(coordinates: Coordinates.LineString) : this(coordinates, GeometryObject.GeometryObjectType.LineString)
 
     override fun equals(other: Any?): Boolean {
