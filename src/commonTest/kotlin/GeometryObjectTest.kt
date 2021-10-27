@@ -5,6 +5,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class GeometryObjectTest {
+    //language=Json
     private val json = """
                 {
                     "type": "Point",
@@ -14,7 +15,7 @@ class GeometryObjectTest {
 
     @Test
     internal fun testJsonToPoint() {
-        val expected = GeometryObject.CoordinatesGeometryObject.Point(Coordinates.Point(Position(100f, 0f)))
+        val expected = Point(Coordinates.Point(Position(100f, 0f))) as GeometryObject
         assertEquals(
             expected = expected,
             actual = Json.Default.decodeFromString(json)
@@ -23,7 +24,7 @@ class GeometryObjectTest {
 
     @Test
     internal fun testPointToJson() {
-        val point = GeometryObject.CoordinatesGeometryObject.Point(Coordinates.Point(Position(100f, 0f)))
+        val point = Point(coordinates = Coordinates.Point(Position(100f, 0f))) as GeometryObject
         assertEquals(
             expected = Json.Default.parseToJsonElement(json),
             actual = Json.Default.encodeToJsonElement(point)

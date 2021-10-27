@@ -1,4 +1,10 @@
+import kotlinx.serialization.KSerializer
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
+import kotlinx.serialization.json.JsonClassDiscriminator
 
 // A Geometry object represents points, curves, and surfaces in
 // coordinate space.  Every Geometry object is a GeoJSON object no
@@ -39,218 +45,116 @@ import kotlinx.serialization.Serializable
 // Examples of positions and geometries are provided in Appendix A,
 // "Geometry Examples".
 @Serializable
-sealed class GeometryObject : GeoJsonObject() {
-    abstract override val type: GeometryType
+sealed class GeometryObject : GeoJsonObject()
 
+@Serializable
+@SerialName("GeometryCollection")
+data class GeometryCollection(
+    val geometries: List<GeoJsonObject>,
+) : GeometryObject()
 
-    sealed class CoordinatesGeometryObject : GeometryObject() {
-        abstract val coordinates: Coordinates
+// For type "Point", the "coordinates" member is a single position.
+@Serializable
+@SerialName("Point")
+open class Point(
+    val coordinates: Coordinates.Point,
+) : GeometryObject() {
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other == null || this::class != other::class) return false
 
-        // For type "Point", the "coordinates" member is a single position.
-        @Serializable
-        class Point private constructor(
-            override val coordinates: Coordinates.Point,
-            override val type: GeometryType.Point,
-        ) : CoordinatesGeometryObject() {
-            constructor(coordinate: Coordinates.Point) : this(coordinate, GeometryType.Point)
+        other as Point
 
-            override fun toString(): String {
-                return "Point(coordinates=$coordinates, type=$type)"
-            }
+        if (coordinates != other.coordinates) return false
 
-            override fun equals(other: Any?): Boolean {
-                if (this === other) return true
-                if (other == null || this::class != other::class) return false
-
-                other as Point
-
-                if (coordinates != other.coordinates) return false
-                if (type != other.type) return false
-
-                return true
-            }
-
-            override fun hashCode(): Int {
-                var result = coordinates.hashCode()
-                result = 31 * result + type.hashCode()
-                return result
-            }
-
-        }
-
-        // For type "MultiPoint", the "coordinates" member is an array of
-        // positions.
-        @Serializable
-        class MultiPoint private constructor(
-            override val type: GeometryType.MultiPoint,
-            override val coordinates: Coordinates.MultiPoint
-        ) : CoordinatesGeometryObject() {
-            constructor(coordinates: Coordinates.MultiPoint) : this(GeometryType.MultiPoint, coordinates)
-
-            override fun equals(other: Any?): Boolean {
-                if (this === other) return true
-                if (other == null || this::class != other::class) return false
-
-                other as MultiPoint
-
-                if (type != other.type) return false
-                if (coordinates != other.coordinates) return false
-
-                return true
-            }
-
-            override fun hashCode(): Int {
-                var result = type.hashCode()
-                result = 31 * result + coordinates.hashCode()
-                return result
-            }
-
-            override fun toString(): String {
-                return "MultiPoint(type=$type, coordinates=$coordinates)"
-            }
-
-        }
-
-
-        // For type "LineString", the "coordinates" member is an array of two or
-        // more positions.
-        @Serializable
-        sealed class LineString : CoordinatesGeometryObject() {
-            abstract override val type: GeometryType.LineString
-
-            companion object {
-                operator fun invoke(coordinates: Coordinates.LineString): LineString? {
-                    return LinearRing(coordinates) ?: Standard(coordinates)
-                }
-            }
-
-            @Serializable
-            class Standard private constructor(
-                override val coordinates: Coordinates.LineString,
-                override val type: GeometryType.LineString
-            ) : LineString() {
-                companion object {
-                    operator fun invoke(coordinate: Coordinates.LineString): Standard? {
-                        return if (coordinate.position.size < 2) {
-                            null
-                        } else {
-                            Standard(coordinate, GeometryType.LineString)
-                        }
-                    }
-                }
-
-                override fun equals(other: Any?): Boolean {
-                    if (this === other) return true
-                    if (other == null || this::class != other::class) return false
-
-                    other as Standard
-
-                    if (coordinates != other.coordinates) return false
-
-                    return true
-                }
-
-                override fun hashCode(): Int {
-                    return coordinates.hashCode()
-                }
-
-                override fun toString(): String {
-                    return "Standard(coordinates=$coordinates)"
-                }
-
-
-            }
-
-            @Serializable
-            class LinearRing private constructor(
-                override val coordinates: Coordinates.LineString,
-                override val type: GeometryType.LineString
-            ) : LineString() {
-                companion object {
-                    operator fun invoke(coordinates: Coordinates.LineString): LinearRing? {
-                        return if (
-                            coordinates.position.first() == coordinates.position.last()
-                            && coordinates.position.size >= 4
-                            && coordinates.isClockwise()
-                        ) {
-                            LinearRing(coordinates, GeometryType.LineString)
-                        } else {
-                            null
-                        }
-                    }
-                }
-
-                fun contains(linearRing: LinearRing): Boolean {
-                    TODO("Not yet implemented")
-                }
-
-                override fun equals(other: Any?): Boolean {
-                    if (this === other) return true
-                    if (other == null || this::class != other::class) return false
-
-                    other as LinearRing
-
-                    if (coordinates != other.coordinates) return false
-
-                    return true
-                }
-
-                override fun hashCode(): Int {
-                    return coordinates.hashCode()
-                }
-
-                override fun toString(): String {
-                    return "LinearRing(coordinates=$coordinates)"
-                }
-
-            }
-        }
-
-        // For type "MultiLineString", the "coordinates" member is an array of
-        // LineString coordinate arrays.
-        data class MultiLineString(
-            override val type: GeometryType.MultiLineString,
-            override val coordinates: Coordinates.MultiLineString
-        ) : CoordinatesGeometryObject()
-
-        // -  For type "Polygon", the "coordinates" member MUST be an array of
-        //    linear ring coordinate arrays.
-        //
-        // -  For Polygons with more than one of these rings, the first MUST be
-        //    the exterior ring, and any others MUST be interior rings.  The
-        //    exterior ring bounds the surface, and the interior rings (if
-        //    present) bound holes within the surface.
-        class Polygon private constructor(
-            override val coordinates: Coordinates.Polygon
-        ) : CoordinatesGeometryObject() {
-            override val type: GeometryType.Polygon = GeometryType.Polygon
-
-            companion object {
-                operator fun invoke(coordinates: List<Coordinates.Polygon>): Polygon? {
-                    return if (coordinates.size > 1) {
-                        val outer = coordinates.first()
-                        val rest = coordinates.drop(1)
-                        if (rest.all { outer.lineString.contains(it.lineString) }) {
-                            Polygon(coordinates)
-                        } else {
-                            null
-                        }
-                    } else {
-                        null
-                    }
-                }
-            }
-        }
-
-        data class MultiPolygon(
-            override val type: GeometryType.MultiPolygon,
-            override val coordinates: Coordinates.MultiPolygon
-        ) : CoordinatesGeometryObject()
+        return true
     }
 
+    override fun hashCode(): Int {
+        return coordinates.hashCode()
+    }
 
-    data class GeometryCollection(
-        override val type: GeometryType.GeometryCollection,
-        val geometries: List<GeoJsonObject>,
-    ) : GeometryObject()
+    override fun toString(): String {
+        return "Point(coordinates=$coordinates)"
+    }
+}
+
+
+// For type "MultiPoint", the "coordinates" member is an array of
+// positions.
+@Serializable
+@SerialName("MultiPoint")
+open class MultiPoint(
+    val coordinates: Coordinates.MultiPoint
+) : GeometryObject() {
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other == null || this::class != other::class) return false
+
+        other as MultiPoint
+
+        if (coordinates != other.coordinates) return false
+
+        return true
+    }
+    override fun hashCode(): Int {
+        return coordinates.hashCode()
+    }
+    override fun toString(): String {
+        return "MultiPoint(coordinates=$coordinates)"
+    }
+}
+
+
+// For type "MultiLineString", the "coordinates" member is an array of
+// LineString coordinate arrays.
+@Serializable
+@SerialName("MultiLineString")
+open class MultiLineString(
+    val coordinates: Coordinates.MultiLineString
+) : GeometryObject()
+
+// -  For type "Polygon", the "coordinates" member MUST be an array of
+//    linear ring coordinate arrays.
+//
+// -  For Polygons with more than one of these rings, the first MUST be
+//    the exterior ring, and any others MUST be interior rings.  The
+//    exterior ring bounds the surface, and the interior rings (if
+//    present) bound holes within the surface.
+class Polygon private constructor(
+    val coordinates: Coordinates.Polygon
+) : GeometryObject() {
+    init {
+        require(coordinates.value.size > 1) { "must contain at at least one linestring" }
+        val outerRing = coordinates.value.first()
+        val rest = coordinates.value.drop(1)
+        require(rest.all { outerRing.contains(it) }) { "must contain at at least one linestring" }
+    }
+}
+
+data class MultiPolygon(
+    val coordinates: Coordinates.MultiPolygon
+) : GeometryObject()
+
+// For type "LineString", the "coordinates" member is an array of two or
+// more positions.
+@Serializable
+@SerialName("LineString")
+open class LineString(val coordinates: Coordinates.LineString) : GeometryObject() {
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other == null || this::class != other::class) return false
+
+        other as LineString
+
+        if (coordinates != other.coordinates) return false
+
+        return true
+    }
+    override fun hashCode(): Int {
+        return coordinates.hashCode()
+    }
+    override fun toString(): String {
+        return "LineString(coordinates=$coordinates)"
+    }
 }

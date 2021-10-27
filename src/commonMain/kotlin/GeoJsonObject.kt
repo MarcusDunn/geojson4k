@@ -1,3 +1,5 @@
+import kotlinx.serialization.Serializable
+
 // A GeoJSON object represents a Geometry, Feature, or collection of
 // Features.
 // -  A GeoJSON object is a JSON object.
@@ -9,8 +11,7 @@
 // be a bounding box array (see Section 5).
 //
 // -  A GeoJSON object MAY have other members (see Section 6).
-sealed class GeoJsonObject {
-    abstract val type: GeoJsonType
-}
+@Serializable
+sealed class GeoJsonObject
 
 

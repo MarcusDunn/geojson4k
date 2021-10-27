@@ -11,34 +11,40 @@ class LineStringTest {
              "type": "LineString",
              "coordinates": [
                  [101.0, 0.0],
-                 [102.0, 1.0]
+                 [102.0, 1.0],
+                 [101.0, 1.0],
+                 [101.0, 0.0]
              ]
          }"""
+
+    private val coordinates = Coordinates.LineString.LinearRing(
+        listOf(
+            Position(101f, 0f),
+            Position(102f, 1f),
+            Position(101f, 1f),
+            Position(101f, 0f)
+        )
+    )
 
     @Test
     fun testJsonToStandardLineString() {
         assertEquals(
             actual = Json.Default.decodeFromString(json),
-            expected = GeometryObject.CoordinatesGeometryObject.LineString.Standard(
-                Coordinates.LineString(
-                    listOf(Position(101f, 0f), Position(102f, 1f))
-                )
-            )
+            expected = LineString(coordinates) as GeometryObject
         )
     }
 
     @Test
     fun testJsonToLinearRing() {
-        TODO("need to figure out how to see if a LineStringTest is right handed")
+        assertEquals(
+            actual = Json.Default.decodeFromString(json),
+            expected = LineString(coordinates) as GeometryObject
+        )
     }
 
     @Test
     fun testStandardLineStringToJson() {
-        val standard = GeometryObject.CoordinatesGeometryObject.LineString.Standard(
-            Coordinates.LineString(
-                listOf(Position(101f, 0f), Position(102f, 1f))
-            )
-        )
+        val standard = LineString(coordinates) as GeometryObject
         val actual = Json.encodeToJsonElement(standard)
         assertEquals(
             expected = Json.Default.parseToJsonElement(json),
@@ -48,6 +54,19 @@ class LineStringTest {
 
     @Test
     fun testLinearRingToJson() {
-        TODO()
+        assertEquals(
+            actual = Json.Default.parseToJsonElement(json),
+            expected = Json.Default.encodeToJsonElement(
+                LineString(coordinates) as GeometryObject
+            )
+        )
+    }
+
+    @Test
+    fun testLineStringToJson() {
+        assertEquals(
+            actual = Json.Default.parseToJsonElement(json),
+            expected = Json.Default.encodeToJsonElement(LineString(coordinates) as GeometryObject)
+        )
     }
 }

@@ -6,14 +6,14 @@ class GeometryObjectKtTest {
     // works
     fun testIsRightHanded() {
         assertEquals(
-            Coordinates.LineString(
+            Coordinates.LineString.LinearRing(
                 listOf(
                     Position(0f, 0f),
                     Position(1f, 1f),
                     Position(1f, 0f),
                     Position(0f, 0f)
                 )
-            ).isClockwise(), true
+            ).isClockwise, true
         )
     }
 
@@ -21,14 +21,14 @@ class GeometryObjectKtTest {
     // fails
     fun testIsRightHandedOtherWay() {
         assertEquals(
-            Coordinates.LineString(
+            Coordinates.LineString.LinearRing(
                 listOf(
                     Position(0f, 0f),
                     Position(1f, 0f),
                     Position(1f, 1f),
                     Position(0f, 0f)
                 )
-            ).isClockwise(), false
+            ).isClockwise, false
         )
     }
 }

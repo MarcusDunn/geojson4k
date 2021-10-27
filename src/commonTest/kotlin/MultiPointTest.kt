@@ -18,7 +18,7 @@ class MultiPointTest {
 
     @Test
     fun testMultiPointToJson() {
-        val multiPoint = GeometryObject.CoordinatesGeometryObject.MultiPoint(
+        val multiPoint = MultiPoint(
             Coordinates.MultiPoint(
                 listOf(
                     Position(100f, 0f),
@@ -28,14 +28,14 @@ class MultiPointTest {
         )
 
         assertEquals(
-            actual = Json.Default.encodeToJsonElement(multiPoint),
+            actual = Json.Default.encodeToJsonElement(multiPoint as GeoJsonObject),
             expected = Json.Default.parseToJsonElement(json)
         )
     }
 
     @Test
     fun testJsonToMultiPoint() {
-        val expected = GeometryObject.CoordinatesGeometryObject.MultiPoint(
+        val expected = MultiPoint(
             Coordinates.MultiPoint(
                 listOf(
                     Position(100f, 0f),
@@ -43,6 +43,6 @@ class MultiPointTest {
                 )
             )
         )
-        assertEquals(expected = expected, actual = Json.Default.decodeFromString(json))
+        assertEquals(expected = expected as GeoJsonObject, actual = Json.Default.decodeFromString(json))
     }
 }
