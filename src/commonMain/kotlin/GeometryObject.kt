@@ -1,10 +1,12 @@
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.SerializationException
+import kotlinx.serialization.descriptors.PrimitiveKind
+import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
-import kotlinx.serialization.json.JsonClassDiscriminator
 
 // A Geometry object represents points, curves, and surfaces in
 // coordinate space.  Every Geometry object is a GeoJSON object no
@@ -44,21 +46,123 @@ import kotlinx.serialization.json.JsonClassDiscriminator
 //
 // Examples of positions and geometries are provided in Appendix A,
 // "Geometry Examples".
-@Serializable
-sealed class GeometryObject : GeoJsonObject()
+sealed interface GeometryObject {
+    val type: GeometryObjectType
+
+    @Serializable(with = GeometryObjectType.Serializer::class)
+    sealed class GeometryObjectType {
+        abstract val name: String
+
+        object Serializer : KSerializer<GeometryObjectType> {
+            override fun deserialize(decoder: Decoder): GeometryObjectType {
+                return when (val type = decoder.decodeString()) {
+                    LineString.name -> LineString
+                    MultiPolygon.name -> MultiPolygon
+                    GeometryCollection.name -> GeometryCollection
+                    Polygon.name -> Polygon
+                    MultiLineString.name -> MultiLineString
+                    Point.name -> Point
+                    MultiPoint.name -> MultiPoint
+                    else -> throw SerializationException("Invalid GeometryObjectType $type")
+                }
+            }
+
+            override val descriptor: SerialDescriptor =
+                PrimitiveSerialDescriptor("GeometryObjectType", PrimitiveKind.STRING)
+
+            override fun serialize(encoder: Encoder, value: GeometryObjectType) {
+                encoder.encodeString(value = value.name)
+            }
+
+        }
+
+
+        @Serializable(with = Serializer::class)
+        object LineString : GeometryObjectType() {
+            override val name = "LineString"
+        }
+
+        @Serializable(with = Serializer::class)
+        object MultiPolygon : GeometryObjectType() {
+            override val name = "MultiPolygon"
+        }
+
+        @Serializable(with = Serializer::class)
+        object GeometryCollection : GeometryObject.GeometryObjectType() {
+            override val name = "GeometryCollection"
+        }
+
+        @Serializable(with = Serializer::class)
+        object Polygon : GeometryObject.GeometryObjectType() {
+            override val name = "Polygon"
+        }
+
+        @Serializable(with = Serializer::class)
+        object MultiLineString : GeometryObject.GeometryObjectType() {
+            override val name = "MultiLineString"
+        }
+
+        @Serializable(with = Serializer::class)
+        object Point : GeometryObject.GeometryObjectType() {
+            override val name = "Point"
+        }
+
+        @Serializable(with = Serializer::class)
+        object MultiPoint : GeometryObjectType() {
+            override val name = "MultiPoint"
+        }
+    }
+
+    interface Coordinate : GeometryObject {
+        val coordinates: Coordinates
+    }
+
+    interface Collection : GeometryObject {
+        val geometries: List<GeoJsonObject>
+    }
+}
 
 @Serializable
-@SerialName("GeometryCollection")
-data class GeometryCollection(
-    val geometries: List<GeoJsonObject>,
-) : GeometryObject()
+open class GeometryCollection private constructor(
+    override val geometries: List<GeoJsonObject>,
+    override val type: GeometryObject.GeometryObjectType.GeometryCollection
+) : GeometryObject.Collection {
+    constructor(geometries: List<GeoJsonObject>) : this(
+        geometries,
+        GeometryObject.GeometryObjectType.GeometryCollection
+    )
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other == null || this::class != other::class) return false
+
+        other as GeometryCollection
+
+        if (geometries != other.geometries) return false
+        if (type != other.type) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = geometries.hashCode()
+        result = 31 * result + type.hashCode()
+        return result
+    }
+
+    override fun toString(): String {
+        return "GeometryCollection(geometries=$geometries, type=$type)"
+    }
+}
 
 // For type "Point", the "coordinates" member is a single position.
 @Serializable
-@SerialName("Point")
-open class Point(
-    val coordinates: Coordinates.Point,
-) : GeometryObject() {
+open class Point private constructor(
+    override val coordinates: Coordinates.Point,
+    override val type: GeometryObject.GeometryObjectType.Point
+) : GeometryObject.Coordinate {
+    constructor(coordinates: Coordinates.Point) : this(coordinates, GeometryObject.GeometryObjectType.Point)
+
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other == null || this::class != other::class) return false
@@ -83,10 +187,12 @@ open class Point(
 // For type "MultiPoint", the "coordinates" member is an array of
 // positions.
 @Serializable
-@SerialName("MultiPoint")
-open class MultiPoint(
-    val coordinates: Coordinates.MultiPoint
-) : GeometryObject() {
+open class MultiPoint private constructor(
+    override val coordinates: Coordinates.MultiPoint,
+    override val type: GeometryObject.GeometryObjectType.MultiPoint
+) : GeometryObject.Coordinate {
+    constructor(coordinates: Coordinates.MultiPoint) : this(coordinates, GeometryObject.GeometryObjectType.MultiPoint)
+
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other == null || this::class != other::class) return false
@@ -97,9 +203,11 @@ open class MultiPoint(
 
         return true
     }
+
     override fun hashCode(): Int {
         return coordinates.hashCode()
     }
+
     override fun toString(): String {
         return "MultiPoint(coordinates=$coordinates)"
     }
@@ -111,8 +219,9 @@ open class MultiPoint(
 @Serializable
 @SerialName("MultiLineString")
 open class MultiLineString(
-    val coordinates: Coordinates.MultiLineString
-) : GeometryObject()
+    override val coordinates: Coordinates.MultiLineString,
+    override val type: GeometryObject.GeometryObjectType.MultiLineString
+) : GeometryObject.Coordinate
 
 // -  For type "Polygon", the "coordinates" member MUST be an array of
 //    linear ring coordinate arrays.
@@ -121,9 +230,11 @@ open class MultiLineString(
 //    the exterior ring, and any others MUST be interior rings.  The
 //    exterior ring bounds the surface, and the interior rings (if
 //    present) bound holes within the surface.
-class Polygon private constructor(
-    val coordinates: Coordinates.Polygon
-) : GeometryObject() {
+open class Polygon private constructor(
+    override val coordinates: Coordinates.Polygon,
+    override val type: GeometryObject.GeometryObjectType.Polygon
+
+) : GeometryObject.Coordinate {
     init {
         require(coordinates.value.size > 1) { "must contain at at least one linestring" }
         val outerRing = coordinates.value.first()
@@ -132,15 +243,48 @@ class Polygon private constructor(
     }
 }
 
-data class MultiPolygon(
-    val coordinates: Coordinates.MultiPolygon
-) : GeometryObject()
+@Serializable
+open class MultiPolygon private constructor(
+    override val coordinates: Coordinates.MultiPolygon,
+    override val type: GeometryObject.GeometryObjectType.MultiPolygon
+) : GeometryObject.Coordinate {
+    constructor(coordinates: Coordinates.MultiPolygon) : this(
+        coordinates,
+        GeometryObject.GeometryObjectType.MultiPolygon
+    )
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other == null || this::class != other::class) return false
+
+        other as MultiPolygon
+
+        if (coordinates != other.coordinates) return false
+        if (type != other.type) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = coordinates.hashCode()
+        result = 31 * result + type.hashCode()
+        return result
+    }
+
+    override fun toString(): String {
+        return "MultiPolygon(coordinates=$coordinates, type=$type)"
+    }
+}
 
 // For type "LineString", the "coordinates" member is an array of two or
 // more positions.
 @Serializable
-@SerialName("LineString")
-open class LineString(val coordinates: Coordinates.LineString) : GeometryObject() {
+open class LineString private constructor(
+    override val coordinates: Coordinates.LineString,
+    override val type: GeometryObject.GeometryObjectType.LineString
+) : GeometryObject.Coordinate {
+    constructor(coordinates: Coordinates.LineString) : this(coordinates, GeometryObject.GeometryObjectType.LineString)
+
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other == null || this::class != other::class) return false
@@ -151,9 +295,11 @@ open class LineString(val coordinates: Coordinates.LineString) : GeometryObject(
 
         return true
     }
+
     override fun hashCode(): Int {
         return coordinates.hashCode()
     }
+
     override fun toString(): String {
         return "LineString(coordinates=$coordinates)"
     }

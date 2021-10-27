@@ -3,6 +3,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.encodeToJsonElement
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import MultiPoint as MultiPoint1
 
 class MultiPointTest {
     //language=json
@@ -18,7 +19,7 @@ class MultiPointTest {
 
     @Test
     fun testMultiPointToJson() {
-        val multiPoint = MultiPoint(
+        val multiPoint = MultiPoint1(
             Coordinates.MultiPoint(
                 listOf(
                     Position(100f, 0f),
@@ -28,14 +29,14 @@ class MultiPointTest {
         )
 
         assertEquals(
-            actual = Json.Default.encodeToJsonElement(multiPoint as GeoJsonObject),
+            actual = Json.Default.encodeToJsonElement(multiPoint),
             expected = Json.Default.parseToJsonElement(json)
         )
     }
 
     @Test
     fun testJsonToMultiPoint() {
-        val expected = MultiPoint(
+        val expected = MultiPoint1(
             Coordinates.MultiPoint(
                 listOf(
                     Position(100f, 0f),
@@ -43,6 +44,6 @@ class MultiPointTest {
                 )
             )
         )
-        assertEquals(expected = expected as GeoJsonObject, actual = Json.Default.decodeFromString(json))
+        assertEquals(expected = expected, actual = Json.Default.decodeFromString(json))
     }
 }

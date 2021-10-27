@@ -126,7 +126,9 @@ sealed class Coordinates {
     //    the exterior ring, and any others MUST be interior rings.  The
     //    exterior ring bounds the surface, and the interior rings (if
     //    present) bound holes within the surface.
+    @Serializable
     data class Polygon(val value: List<Coordinates.LineString.LinearRing>) : Coordinates()
+    @Serializable
     data class MultiPolygon(val value: List<Coordinates.Polygon>) : Coordinates()
 }
 

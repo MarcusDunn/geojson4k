@@ -30,7 +30,7 @@ class LineStringTest {
     fun testJsonToStandardLineString() {
         assertEquals(
             actual = Json.Default.decodeFromString(json),
-            expected = LineString(coordinates) as GeometryObject
+            expected = LineString(coordinates)
         )
     }
 
@@ -38,13 +38,13 @@ class LineStringTest {
     fun testJsonToLinearRing() {
         assertEquals(
             actual = Json.Default.decodeFromString(json),
-            expected = LineString(coordinates) as GeometryObject
+            expected = LineString(coordinates)
         )
     }
 
     @Test
     fun testStandardLineStringToJson() {
-        val standard = LineString(coordinates) as GeometryObject
+        val standard = LineString(coordinates)
         val actual = Json.encodeToJsonElement(standard)
         assertEquals(
             expected = Json.Default.parseToJsonElement(json),
@@ -57,7 +57,7 @@ class LineStringTest {
         assertEquals(
             actual = Json.Default.parseToJsonElement(json),
             expected = Json.Default.encodeToJsonElement(
-                LineString(coordinates) as GeometryObject
+                LineString(coordinates)
             )
         )
     }
@@ -66,7 +66,7 @@ class LineStringTest {
     fun testLineStringToJson() {
         assertEquals(
             actual = Json.Default.parseToJsonElement(json),
-            expected = Json.Default.encodeToJsonElement(LineString(coordinates) as GeometryObject)
+            expected = Json.Default.encodeToJsonElement(LineString(coordinates))
         )
     }
 }

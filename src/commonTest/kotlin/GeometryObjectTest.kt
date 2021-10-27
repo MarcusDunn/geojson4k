@@ -15,7 +15,7 @@ class GeometryObjectTest {
 
     @Test
     internal fun testJsonToPoint() {
-        val expected = Point(Coordinates.Point(Position(100f, 0f))) as GeometryObject
+        val expected = Point(Coordinates.Point(Position(100f, 0f)))
         assertEquals(
             expected = expected,
             actual = Json.Default.decodeFromString(json)
@@ -24,7 +24,7 @@ class GeometryObjectTest {
 
     @Test
     internal fun testPointToJson() {
-        val point = Point(coordinates = Coordinates.Point(Position(100f, 0f))) as GeometryObject
+        val point = Point(coordinates = Coordinates.Point(Position(100f, 0f)))
         assertEquals(
             expected = Json.Default.parseToJsonElement(json),
             actual = Json.Default.encodeToJsonElement(point)
