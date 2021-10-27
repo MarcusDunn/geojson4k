@@ -38,27 +38,51 @@ import kotlinx.serialization.Serializable
 //
 // Examples of positions and geometries are provided in Appendix A,
 // "Geometry Examples".
+@Serializable
 sealed class GeometryObject : GeoJsonObject() {
     abstract override val type: GeometryType
 
 
     sealed class CoordinatesGeometryObject : GeometryObject() {
-        abstract val coordinates: List<Coordinate>
+        abstract val coordinates: Coordinate
 
         // For type "Point", the "coordinates" member is a single position.
-        data class Point(
+        @Serializable
+        class Point private constructor(
+            override val coordinates: Coordinate.Point,
             override val type: GeometryType.Point,
-            val coordinate: Coordinate.Point
         ) : CoordinatesGeometryObject() {
-            override val coordinates: List<Coordinate>
-                get() = listOf(coordinate)
+            constructor(coordinate: Coordinate.Point) : this(coordinate, GeometryType.Point)
+
+            override fun toString(): String {
+                return "Point(coordinates=$coordinates, type=$type)"
+            }
+
+            override fun equals(other: Any?): Boolean {
+                if (this === other) return true
+                if (other == null || this::class != other::class) return false
+
+                other as Point
+
+                if (coordinates != other.coordinates) return false
+                if (type != other.type) return false
+
+                return true
+            }
+
+            override fun hashCode(): Int {
+                var result = coordinates.hashCode()
+                result = 31 * result + type.hashCode()
+                return result
+            }
+
         }
 
         // For type "MultiPoint", the "coordinates" member is an array of
         // positions.
         data class MultiPoint(
             override val type: GeometryType.MultiPoint,
-            override val coordinates: List<Coordinate.MultiPoint>
+            override val coordinates: Coordinate.MultiPoint
         ) : CoordinatesGeometryObject()
 
         // For type "LineString", the "coordinates" member is an array of two or
@@ -78,7 +102,7 @@ sealed class GeometryObject : GeoJsonObject() {
             }
 
             class Standard private constructor(
-                override val coordinates: List<Coordinate.MultiPoint>
+                override val coordinates: Coordinate.MultiPoint
             ) : LineString() {
                 companion object {
                     operator fun invoke(coordinate: List<Coordinate.MultiPoint>): Standard? {
@@ -92,7 +116,7 @@ sealed class GeometryObject : GeoJsonObject() {
             }
 
             class LinearRing private constructor(
-                override val coordinates: List<Coordinate.MultiPoint>
+                override val coordinates: Coordinate.MultiPoint
             ) : LineString() {
                 companion object {
                     operator fun invoke(coordinates: List<Coordinate.MultiPoint>): LinearRing? {
@@ -118,7 +142,7 @@ sealed class GeometryObject : GeoJsonObject() {
         // LineString coordinate arrays.
         data class MultiLineString(
             override val type: GeometryType.MultiLineString,
-            override val coordinates: List<Coordinate.MultiLineString>
+            override val coordinates: Coordinate.MultiLineString
         ) : CoordinatesGeometryObject()
 
         // -  For type "Polygon", the "coordinates" member MUST be an array of
@@ -129,7 +153,7 @@ sealed class GeometryObject : GeoJsonObject() {
         //    exterior ring bounds the surface, and the interior rings (if
         //    present) bound holes within the surface.
         class Polygon private constructor(
-            override val coordinates: List<Coordinate.Polygon>
+            override val coordinates: Coordinate.Polygon
         ) : CoordinatesGeometryObject() {
             override val type: GeometryType.Polygon = GeometryType.Polygon
 
@@ -152,7 +176,7 @@ sealed class GeometryObject : GeoJsonObject() {
 
         data class MultiPolygon(
             override val type: GeometryType.MultiPolygon,
-            override val coordinates: List<Coordinate.MultiPolygon>
+            override val coordinates: Coordinate.MultiPolygon
         ) : CoordinatesGeometryObject()
     }
 

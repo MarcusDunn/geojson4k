@@ -11,7 +11,7 @@ import kotlinx.serialization.encoding.Encoder
 //case-sensitive strings: "Point", "MultiPoint", "LineString",
 //"MultiLineString", "Polygon", "MultiPolygon", and
 //"GeometryCollection".
-@Serializable
+@Serializable(with = GeometryTypeAsString::class)
 sealed class GeometryType : GeoJsonType() {
     abstract override val type: String
 
@@ -55,7 +55,6 @@ sealed class GeometryType : GeoJsonType() {
         override val type = "Polygon"
     }
 
-
     @Serializable(with = GeometryTypeAsString::class)
     object MultiPolygon : GeometryType() {
         override val type = "MultiPolygon"
@@ -79,5 +78,4 @@ object GeometryTypeAsString : KSerializer<GeometryType> {
     override fun serialize(encoder: Encoder, value: GeometryType) {
         encoder.encodeString(value.type)
     }
-
 }

@@ -10,6 +10,7 @@ repositories {
     mavenCentral()
 }
 
+
 kotlin {
     jvm {
         compilations.all {
@@ -21,6 +22,11 @@ kotlin {
     }
     js(LEGACY) {
         browser {
+            testTask {
+                useKarma {
+                    useFirefox()
+                }
+            }
             commonWebpackConfig {
                 cssSupport.enabled = true
             }

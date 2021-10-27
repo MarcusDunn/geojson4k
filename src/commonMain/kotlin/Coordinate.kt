@@ -1,23 +1,25 @@
-import kotlinx.serialization.*
+import kotlinx.serialization.KSerializer
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.builtins.FloatArraySerializer
+import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
 
 sealed class Coordinate {
     // For type "Point", the "coordinates" member is a single position.
-    @Serializable
+    @Serializable(with = PointAsFloatArray::class)
     data class Point(val position: Position) : Coordinate()
 
     // For type "MultiPoint", the "coordinates" member is an array of
     // positions.
-    @Serializable
     data class MultiPoint(val position: Position) : Coordinate()
 
     // For type "LineString", the "coordinates" member is an array of two or
     // more positions.
-    @Serializable
     data class LineString(val position: Position) : Coordinate()
 
     // For type "MultiLineString", the "coordinates" member is an array of
     // LineString coordinate arrays.
-    @Serializable
     data class MultiLineString(val lineString: List<GeometryObject.CoordinatesGeometryObject.LineString>) : Coordinate()
 
     // -  specify a constraint specific to Polygons, it is useful to
@@ -52,4 +54,16 @@ sealed class Coordinate {
     //    present) bound holes within the surface.
     data class Polygon(val lineString: GeometryObject.CoordinatesGeometryObject.LineString.LinearRing) : Coordinate()
     data class MultiPolygon(val polygons: List<Coordinate.Polygon>) : Coordinate()
+}
+
+object PointAsFloatArray : KSerializer<Coordinate.Point> {
+    override val descriptor: SerialDescriptor = SerialDescriptor("Point", FloatArraySerializer().descriptor)
+
+    override fun deserialize(decoder: Decoder): Coordinate.Point {
+        return Coordinate.Point(Position(*decoder.decodeSerializableValue(FloatArraySerializer())))
+    }
+
+    override fun serialize(encoder: Encoder, value: Coordinate.Point) {
+        encoder.encodeSerializableValue(PositionAsFloatArray, value.position)
+    }
 }
