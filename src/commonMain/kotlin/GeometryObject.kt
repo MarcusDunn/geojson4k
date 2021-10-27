@@ -85,7 +85,6 @@ sealed class GeometryObject : GeoJsonObject() {
             override val type: GeometryType.MultiPoint,
             override val coordinates: Coordinates.MultiPoint
         ) : CoordinatesGeometryObject() {
-
             constructor(coordinates: Coordinates.MultiPoint) : this(GeometryType.MultiPoint, coordinates)
 
             override fun equals(other: Any?): Boolean {
@@ -110,7 +109,6 @@ sealed class GeometryObject : GeoJsonObject() {
                 return "MultiPoint(type=$type, coordinates=$coordinates)"
             }
 
-
         }
 
 
@@ -118,43 +116,64 @@ sealed class GeometryObject : GeoJsonObject() {
         // more positions.
         @Serializable
         sealed class LineString : CoordinatesGeometryObject() {
-            final override val type = GeometryType.LineString
+            abstract override val type: GeometryType.LineString
 
             companion object {
-                operator fun invoke(coordinates: List<Coordinates.MultiPoint>): LineString? {
+                operator fun invoke(coordinates: Coordinates.LineString): LineString? {
                     return LinearRing(coordinates) ?: Standard(coordinates)
-                }
-
-                private fun followsRightHandRule(coordinates: List<Coordinates.MultiPoint>): Boolean {
-                    TODO("Not yet implemented")
                 }
             }
 
+            @Serializable
             class Standard private constructor(
-                override val coordinates: Coordinates.MultiPoint
+                override val coordinates: Coordinates.LineString,
+                override val type: GeometryType.LineString
             ) : LineString() {
                 companion object {
-                    operator fun invoke(coordinate: List<Coordinates.MultiPoint>): Standard? {
-                        return if (coordinate.size < 2) {
+                    operator fun invoke(coordinate: Coordinates.LineString): Standard? {
+                        return if (coordinate.position.size < 2) {
                             null
                         } else {
-                            Standard(coordinate)
+                            Standard(coordinate, GeometryType.LineString)
                         }
                     }
                 }
+
+                override fun equals(other: Any?): Boolean {
+                    if (this === other) return true
+                    if (other == null || this::class != other::class) return false
+
+                    other as Standard
+
+                    if (coordinates != other.coordinates) return false
+
+                    return true
+                }
+
+                override fun hashCode(): Int {
+                    return coordinates.hashCode()
+                }
+
+                override fun toString(): String {
+                    return "Standard(coordinates=$coordinates)"
+                }
+
+
             }
 
+            @Serializable
             class LinearRing private constructor(
-                override val coordinates: Coordinates.MultiPoint
+                override val coordinates: Coordinates.LineString,
+                override val type: GeometryType.LineString
             ) : LineString() {
                 companion object {
-                    operator fun invoke(coordinates: List<Coordinates.MultiPoint>): LinearRing? {
+                    operator fun invoke(coordinates: Coordinates.LineString): LinearRing? {
                         return if (
-                            coordinates.first() == coordinates.last()
-                            && coordinates.size >= 4
-                            && followsRightHandRule(coordinates)
+                            coordinates.position.first() == coordinates.position.last()
+                            && coordinates.position.size >= 4
+                            && coordinates.isClockwise()
                         ) {
-                            LinearRing(coordinates)
+                            LinearRing(coordinates, GeometryType.LineString)
                         } else {
                             null
                         }
@@ -164,6 +183,26 @@ sealed class GeometryObject : GeoJsonObject() {
                 fun contains(linearRing: LinearRing): Boolean {
                     TODO("Not yet implemented")
                 }
+
+                override fun equals(other: Any?): Boolean {
+                    if (this === other) return true
+                    if (other == null || this::class != other::class) return false
+
+                    other as LinearRing
+
+                    if (coordinates != other.coordinates) return false
+
+                    return true
+                }
+
+                override fun hashCode(): Int {
+                    return coordinates.hashCode()
+                }
+
+                override fun toString(): String {
+                    return "LinearRing(coordinates=$coordinates)"
+                }
+
             }
         }
 
@@ -215,4 +254,3 @@ sealed class GeometryObject : GeoJsonObject() {
         val geometries: List<GeoJsonObject>,
     ) : GeometryObject()
 }
-

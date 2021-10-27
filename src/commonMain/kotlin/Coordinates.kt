@@ -1,11 +1,11 @@
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.builtins.ArraySerializer
 import kotlinx.serialization.builtins.FloatArraySerializer
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
+import kotlin.math.*
 
 sealed class Coordinates {
     // For type "Point", the "coordinates" member is a single position.
@@ -19,7 +19,39 @@ sealed class Coordinates {
 
     // For type "LineString", the "coordinates" member is an array of two or
     // more positions.
-    data class LineString(val position: Position) : Coordinates()
+    @Serializable(with = LineStringAs2DArraySerializer::class)
+    data class LineString(val position: List<Position>) : Coordinates() {
+        init {
+            require(position.size >= 2) { "For type \"LineString\", the \"coordinates\" member is an array of two or more positions." }
+        }
+
+        fun isClockwise(): Boolean {
+            val (index, _) = this.position.drop(1).dropLast(1)
+                .foldIndexed(0 to this.position[0]) { index, acc, position ->
+                    when (acc.second.latitude.compareTo(position.latitude).sign) {
+                        -1 -> acc
+                        0 -> when (acc.second.longitude.compareTo(position.longitude).sign) {
+                            1 -> acc
+                            -1 -> index + 1 to position
+                            else -> throw IllegalStateException("Cannot have two equals points on the coordinates")
+                        }
+                        1 -> index + 1 to position
+                        else -> throw IllegalStateException("Impossible to reach")
+                    }
+                }
+            val noRepeats = this.position.drop(1)
+            val a = noRepeats[(index - 1).mod(noRepeats.size)]
+            val b = noRepeats[index]
+            val c = noRepeats[(index + 1).mod(noRepeats.size)]
+            val v1 = a.latitude - b.latitude to a.longitude - b.longitude
+            val v2 = b.latitude - c.latitude to b.longitude - c.longitude
+            val magv1 = sqrt(v1.second.pow(2) + v1.second.pow(2))
+            val magv2 = sqrt(v2.second.pow(2) + v2.second.pow(2))
+            val dot = v1.first * v2.first + v2.second * v2.second
+            val angle = acos(dot / (magv1 * magv2))
+            return (magv1 * magv2 * sin(angle)) > 0
+        }
+    }
 
     // For type "MultiLineString", the "coordinates" member is an array of
     // LineString coordinate arrays.
@@ -60,12 +92,28 @@ sealed class Coordinates {
     data class MultiPolygon(val polygons: List<Coordinates.Polygon>) : Coordinates()
 }
 
+object LineStringAs2DArraySerializer : KSerializer<Coordinates.LineString> {
+    override val descriptor: SerialDescriptor =
+        SerialDescriptor("LineString", ListSerializer(PositionAsFloatArraySerializer).descriptor)
+
+    override fun deserialize(decoder: Decoder): Coordinates.LineString {
+        val array2d = decoder.decodeSerializableValue(ListSerializer(PositionAsFloatArraySerializer))
+        return Coordinates.LineString(array2d.map { it })
+    }
+
+    override fun serialize(encoder: Encoder, value: Coordinates.LineString) {
+        encoder.encodeSerializableValue(ListSerializer(PositionAsFloatArraySerializer), value.position)
+    }
+
+}
+
 object MultiPointAs2DArraySerializer : KSerializer<Coordinates.MultiPoint> {
-    override val descriptor: SerialDescriptor = SerialDescriptor("MultiPoint", ListSerializer(FloatArraySerializer()).descriptor)
+    override val descriptor: SerialDescriptor =
+        SerialDescriptor("MultiPoint", ListSerializer(PositionAsFloatArraySerializer).descriptor)
 
     override fun deserialize(decoder: Decoder): Coordinates.MultiPoint {
-        val array2d = decoder.decodeSerializableValue(ListSerializer(FloatArraySerializer()))
-        return Coordinates.MultiPoint(array2d.map { Position(*it) })
+        val array2d = decoder.decodeSerializableValue(ListSerializer(PositionAsFloatArraySerializer))
+        return Coordinates.MultiPoint(array2d.map { it })
     }
 
     override fun serialize(encoder: Encoder, value: Coordinates.MultiPoint) {
