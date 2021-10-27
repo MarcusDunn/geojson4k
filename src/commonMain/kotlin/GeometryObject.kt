@@ -44,15 +44,15 @@ sealed class GeometryObject : GeoJsonObject() {
 
 
     sealed class CoordinatesGeometryObject : GeometryObject() {
-        abstract val coordinates: Coordinate
+        abstract val coordinates: Coordinates
 
         // For type "Point", the "coordinates" member is a single position.
         @Serializable
         class Point private constructor(
-            override val coordinates: Coordinate.Point,
+            override val coordinates: Coordinates.Point,
             override val type: GeometryType.Point,
         ) : CoordinatesGeometryObject() {
-            constructor(coordinate: Coordinate.Point) : this(coordinate, GeometryType.Point)
+            constructor(coordinate: Coordinates.Point) : this(coordinate, GeometryType.Point)
 
             override fun toString(): String {
                 return "Point(coordinates=$coordinates, type=$type)"
@@ -80,10 +80,39 @@ sealed class GeometryObject : GeoJsonObject() {
 
         // For type "MultiPoint", the "coordinates" member is an array of
         // positions.
-        data class MultiPoint(
+        @Serializable
+        class MultiPoint private constructor(
             override val type: GeometryType.MultiPoint,
-            override val coordinates: Coordinate.MultiPoint
-        ) : CoordinatesGeometryObject()
+            override val coordinates: Coordinates.MultiPoint
+        ) : CoordinatesGeometryObject() {
+
+            constructor(coordinates: Coordinates.MultiPoint) : this(GeometryType.MultiPoint, coordinates)
+
+            override fun equals(other: Any?): Boolean {
+                if (this === other) return true
+                if (other == null || this::class != other::class) return false
+
+                other as MultiPoint
+
+                if (type != other.type) return false
+                if (coordinates != other.coordinates) return false
+
+                return true
+            }
+
+            override fun hashCode(): Int {
+                var result = type.hashCode()
+                result = 31 * result + coordinates.hashCode()
+                return result
+            }
+
+            override fun toString(): String {
+                return "MultiPoint(type=$type, coordinates=$coordinates)"
+            }
+
+
+        }
+
 
         // For type "LineString", the "coordinates" member is an array of two or
         // more positions.
@@ -92,20 +121,20 @@ sealed class GeometryObject : GeoJsonObject() {
             final override val type = GeometryType.LineString
 
             companion object {
-                operator fun invoke(coordinates: List<Coordinate.MultiPoint>): LineString? {
+                operator fun invoke(coordinates: List<Coordinates.MultiPoint>): LineString? {
                     return LinearRing(coordinates) ?: Standard(coordinates)
                 }
 
-                private fun followsRightHandRule(coordinates: List<Coordinate.MultiPoint>): Boolean {
+                private fun followsRightHandRule(coordinates: List<Coordinates.MultiPoint>): Boolean {
                     TODO("Not yet implemented")
                 }
             }
 
             class Standard private constructor(
-                override val coordinates: Coordinate.MultiPoint
+                override val coordinates: Coordinates.MultiPoint
             ) : LineString() {
                 companion object {
-                    operator fun invoke(coordinate: List<Coordinate.MultiPoint>): Standard? {
+                    operator fun invoke(coordinate: List<Coordinates.MultiPoint>): Standard? {
                         return if (coordinate.size < 2) {
                             null
                         } else {
@@ -116,10 +145,10 @@ sealed class GeometryObject : GeoJsonObject() {
             }
 
             class LinearRing private constructor(
-                override val coordinates: Coordinate.MultiPoint
+                override val coordinates: Coordinates.MultiPoint
             ) : LineString() {
                 companion object {
-                    operator fun invoke(coordinates: List<Coordinate.MultiPoint>): LinearRing? {
+                    operator fun invoke(coordinates: List<Coordinates.MultiPoint>): LinearRing? {
                         return if (
                             coordinates.first() == coordinates.last()
                             && coordinates.size >= 4
@@ -142,7 +171,7 @@ sealed class GeometryObject : GeoJsonObject() {
         // LineString coordinate arrays.
         data class MultiLineString(
             override val type: GeometryType.MultiLineString,
-            override val coordinates: Coordinate.MultiLineString
+            override val coordinates: Coordinates.MultiLineString
         ) : CoordinatesGeometryObject()
 
         // -  For type "Polygon", the "coordinates" member MUST be an array of
@@ -153,12 +182,12 @@ sealed class GeometryObject : GeoJsonObject() {
         //    exterior ring bounds the surface, and the interior rings (if
         //    present) bound holes within the surface.
         class Polygon private constructor(
-            override val coordinates: Coordinate.Polygon
+            override val coordinates: Coordinates.Polygon
         ) : CoordinatesGeometryObject() {
             override val type: GeometryType.Polygon = GeometryType.Polygon
 
             companion object {
-                operator fun invoke(coordinates: List<Coordinate.Polygon>): Polygon? {
+                operator fun invoke(coordinates: List<Coordinates.Polygon>): Polygon? {
                     return if (coordinates.size > 1) {
                         val outer = coordinates.first()
                         val rest = coordinates.drop(1)
@@ -176,7 +205,7 @@ sealed class GeometryObject : GeoJsonObject() {
 
         data class MultiPolygon(
             override val type: GeometryType.MultiPolygon,
-            override val coordinates: Coordinate.MultiPolygon
+            override val coordinates: Coordinates.MultiPolygon
         ) : CoordinatesGeometryObject()
     }
 

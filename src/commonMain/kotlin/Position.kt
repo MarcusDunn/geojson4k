@@ -34,8 +34,9 @@ import kotlinx.serialization.encoding.Encoder
 // not be able to properly interpret these values.  The interpretation
 // and meaning of additional elements is beyond the scope of this
 // specification, and additional elements MAY be ignored by parsers.
-@Serializable(with = PositionAsFloatArray::class)
+@Serializable(with = PositionAsFloatArraySerializer::class)
 data class Position(val latitude: Float, val longitude: Float, val altitude: Float? = null) {
+
     constructor(vararg scalar: Float) : this(
         latitude = scalar[0],
         longitude = scalar[1],
@@ -45,7 +46,7 @@ data class Position(val latitude: Float, val longitude: Float, val altitude: Flo
     )
 }
 
-object PositionAsFloatArray : KSerializer<Position> {
+object PositionAsFloatArraySerializer : KSerializer<Position> {
     @OptIn(ExperimentalSerializationApi::class)
     override val descriptor: SerialDescriptor = SerialDescriptor("Position", FloatArraySerializer().descriptor)
 
