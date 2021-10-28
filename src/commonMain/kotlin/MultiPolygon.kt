@@ -1,11 +1,13 @@
+import coordinates.Coordinates
+import coordinates.MultiPolygonCoordinates
 import kotlinx.serialization.Serializable
 
 @Serializable
 open class MultiPolygon private constructor(
-    override val coordinates: Coordinates.MultiPolygon,
+    override val coordinates: MultiPolygonCoordinates,
     override val type: GeometryObject.GeometryObjectType.MultiPolygon
 ) : GeometryObject.CoordinateBased {
-    constructor(coordinates: Coordinates.MultiPolygon) : this(
+    constructor(coordinates: MultiPolygonCoordinates) : this(
         coordinates,
         GeometryObject.GeometryObjectType.MultiPolygon
     )

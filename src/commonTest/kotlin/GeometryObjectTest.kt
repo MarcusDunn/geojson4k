@@ -1,3 +1,5 @@
+import coordinates.Coordinates
+import coordinates.PointCoordinates
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.encodeToJsonElement
@@ -15,7 +17,7 @@ class GeometryObjectTest {
 
     @Test
     internal fun testJsonToPoint() {
-        val expected = Point(Coordinates.Point(Position(100f, 0f)))
+        val expected = Point(PointCoordinates(Position(100f, 0f)))
         assertEquals(
             expected = expected,
             actual = Json.Default.decodeFromString(json)
@@ -24,7 +26,7 @@ class GeometryObjectTest {
 
     @Test
     internal fun testPointToJson() {
-        val point = Point(coordinates = Coordinates.Point(Position(100f, 0f)))
+        val point = Point(coordinates = PointCoordinates(Position(100f, 0f)))
         assertEquals(
             expected = Json.Default.parseToJsonElement(json),
             actual = Json.Default.encodeToJsonElement(point)

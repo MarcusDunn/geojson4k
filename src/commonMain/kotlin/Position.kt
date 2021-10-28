@@ -1,3 +1,4 @@
+import coordinates.LineStringCoordinatesLinearRing
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
@@ -36,6 +37,20 @@ import kotlinx.serialization.encoding.Encoder
 // specification, and additional elements MAY be ignored by parsers.
 @Serializable(with = Position.Serializer::class)
 data class Position(val latitude: Float, val longitude: Float, val altitude: Float? = null) {
+    operator fun minus(position: Position): Position {
+        return Position(
+            this.latitude - position.latitude,
+            this.latitude - position.longitude,
+            this.altitude?.let { ta -> position.altitude?.let { ta - it } })
+    }
+
+    operator fun plus(position: Position): Position {
+        return Position(
+            this.latitude + position.latitude,
+            this.latitude + position.longitude,
+            this.altitude?.let { ta -> position.altitude?.let { ta + it } })
+    }
+
     object Serializer : KSerializer<Position> {
         @OptIn(ExperimentalSerializationApi::class)
         override val descriptor: SerialDescriptor = SerialDescriptor("Position", FloatArraySerializer().descriptor)

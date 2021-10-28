@@ -1,13 +1,15 @@
+import coordinates.Coordinates
+import coordinates.LineStringCoordinates
 import kotlinx.serialization.Serializable
 
 // For type "LineString", the "coordinates" member is an array of two or
 // more positions.
 @Serializable
 open class LineString private constructor(
-    override val coordinates: Coordinates.LineString,
+    override val coordinates: LineStringCoordinates,
     override val type: GeometryObject.GeometryObjectType.LineString
 ) : GeometryObject.CoordinateBased {
-    constructor(coordinates: Coordinates.LineString) : this(coordinates, GeometryObject.GeometryObjectType.LineString)
+    constructor(coordinates: LineStringCoordinates) : this(coordinates, GeometryObject.GeometryObjectType.LineString)
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true

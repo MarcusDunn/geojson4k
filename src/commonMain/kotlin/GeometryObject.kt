@@ -1,3 +1,4 @@
+import coordinates.Coordinates
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerializationException

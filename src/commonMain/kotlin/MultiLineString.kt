@@ -1,3 +1,5 @@
+import coordinates.Coordinates
+import coordinates.MultiLineStringCoordinates
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -6,10 +8,10 @@ import kotlinx.serialization.Serializable
 @Serializable
 @SerialName("MultiLineString")
 open class MultiLineString private constructor(
-    override val coordinates: Coordinates.MultiLineString,
+    override val coordinates: MultiLineStringCoordinates,
     override val type: GeometryObject.GeometryObjectType.MultiLineString
 ) : GeometryObject.CoordinateBased {
-    constructor(coordinates: Coordinates.MultiLineString) : this(coordinates,
+    constructor(coordinates: MultiLineStringCoordinates) : this(coordinates,
         GeometryObject.GeometryObjectType.MultiLineString
     )
     override fun equals(other: Any?): Boolean {

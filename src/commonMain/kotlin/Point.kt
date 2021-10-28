@@ -1,12 +1,14 @@
+import coordinates.Coordinates
+import coordinates.PointCoordinates
 import kotlinx.serialization.Serializable
 
 // For type "Point", the "coordinates" member is a single position.
 @Serializable
 open class Point private constructor(
-    override val coordinates: Coordinates.Point,
+    override val coordinates: PointCoordinates,
     override val type: GeometryObject.GeometryObjectType.Point
 ) : GeometryObject.CoordinateBased {
-    constructor(coordinates: Coordinates.Point) : this(coordinates, GeometryObject.GeometryObjectType.Point)
+    constructor(coordinates: PointCoordinates) : this(coordinates, GeometryObject.GeometryObjectType.Point)
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true

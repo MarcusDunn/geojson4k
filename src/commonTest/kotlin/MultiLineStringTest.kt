@@ -1,3 +1,5 @@
+import coordinates.LineStringCoordinates
+import coordinates.MultiLineStringCoordinates
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.encodeToJsonElement
@@ -23,14 +25,14 @@ class MultiLineStringTest {
     """.trimIndent()
 
     private val multiLineString = MultiLineString(
-        Coordinates.MultiLineString(
+        MultiLineStringCoordinates(
             listOf(
-                Coordinates.LineString(
+                LineStringCoordinates(
                     listOf(
                         Position(100f, 0f),
                         Position(101f, 1f)
                     )
-                ), Coordinates.LineString(
+                ), LineStringCoordinates(
                     listOf(
                         Position(102f, 2f),
                         Position(103f, 3f)

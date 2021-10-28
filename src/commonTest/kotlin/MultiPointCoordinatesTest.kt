@@ -1,3 +1,5 @@
+import coordinates.Coordinates
+import coordinates.MultiPointCoordinates
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.encodeToJsonElement
@@ -12,7 +14,7 @@ class MultiPointCoordinatesTest {
 
     @Test
     fun testJsonToMultiPointCoordinate() {
-        val multiPoint = Coordinates.MultiPoint(listOf(Position(1f, 2f), Position(3f, 4f)))
+        val multiPoint = MultiPointCoordinates(listOf(Position(1f, 2f), Position(3f, 4f)))
         assertEquals(
             actual = Json.Default.decodeFromString(json),
             expected = multiPoint
@@ -21,7 +23,7 @@ class MultiPointCoordinatesTest {
 
     @Test
     fun testMultiPointCoordinateToJson() {
-        val multiPoint = Coordinates.MultiPoint(listOf(Position(1f, 2f), Position(3f, 4f)))
+        val multiPoint = MultiPointCoordinates(listOf(Position(1f, 2f), Position(3f, 4f)))
         assertEquals(
             actual = Json.Default.encodeToJsonElement(multiPoint),
             expected = Json.Default.parseToJsonElement(json)

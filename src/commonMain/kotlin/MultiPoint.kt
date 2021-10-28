@@ -1,13 +1,15 @@
+import coordinates.Coordinates
+import coordinates.MultiPointCoordinates
 import kotlinx.serialization.Serializable
 
 // For type "MultiPoint", the "coordinates" member is an array of
 // positions.
 @Serializable
 open class MultiPoint private constructor(
-    override val coordinates: Coordinates.MultiPoint,
+    override val coordinates: MultiPointCoordinates,
     override val type: GeometryObject.GeometryObjectType.MultiPoint
 ) : GeometryObject.CoordinateBased {
-    constructor(coordinates: Coordinates.MultiPoint) : this(coordinates, GeometryObject.GeometryObjectType.MultiPoint)
+    constructor(coordinates: MultiPointCoordinates) : this(coordinates, GeometryObject.GeometryObjectType.MultiPoint)
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true

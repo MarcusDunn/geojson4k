@@ -1,3 +1,4 @@
+import coordinates.LineStringCoordinatesLinearRing
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.encodeToJsonElement
@@ -17,7 +18,7 @@ class LineStringTest {
              ]
          }"""
 
-    private val coordinates = Coordinates.LineString.LinearRing(
+    private val coordinates = LineStringCoordinatesLinearRing(
         listOf(
             Position(101f, 0f),
             Position(102f, 1f),
@@ -74,7 +75,7 @@ class LineStringTest {
     // works
     fun testIsRightHanded() {
         assertEquals(
-            Coordinates.LineString.LinearRing(
+            LineStringCoordinatesLinearRing(
                 listOf(
                     Position(0f, 0f),
                     Position(1f, 1f),
@@ -89,7 +90,7 @@ class LineStringTest {
     // fails
     fun testIsRightHandedOtherWay() {
         assertEquals(
-            Coordinates.LineString.LinearRing(
+            LineStringCoordinatesLinearRing(
                 listOf(
                     Position(0f, 0f),
                     Position(1f, 0f),
